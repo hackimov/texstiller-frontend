@@ -17,15 +17,17 @@ echo "Mode: ${FRONTEND_MODE:-auto}"
 
 # Функция для установки зависимостей
 install_dependencies() {
+    # Диагностическая информация
+    echo "📋 Diagnostic information:"
+    echo "Working directory: $(pwd)"
+    echo "User: $(whoami)"
+    echo "Node modules exists: $(test -d node_modules && echo 'yes' || echo 'no')"
+    echo "Vite exists: $(test -f node_modules/.bin/vite && echo 'yes' || echo 'no')"
+    echo "Installed marker: $(test -f node_modules/.installed && echo 'yes' || echo 'no')"
+    
     # Проверяем наличие ключевых зависимостей
-    if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/vite" ]; then
+    if [ ! -f "node_modules/.bin/vite" ] || [ ! -f "node_modules/.installed" ]; then
         echo "📦 Installing dependencies..."
-        
-        # Удаляем старые node_modules если есть
-        if [ -d "node_modules" ]; then
-            echo "🗑️ Removing old node_modules..."
-            rm -rf node_modules
-        fi
         
         # Определяем режим установки
         if [ "$NODE_ENV" = "production" ]; then
@@ -43,6 +45,12 @@ install_dependencies() {
             echo "✅ Dependencies installed successfully"
         else
             echo "❌ Dependencies installation failed - vite not found"
+            echo "📋 Checking node_modules structure:"
+            ls -la node_modules/.bin/ 2>/dev/null || echo "No .bin directory found"
+            echo "📋 Checking package.json scripts:"
+            cat package.json | grep -A 5 '"scripts"' || echo "No scripts found"
+            echo "⏳ Waiting 30 seconds before retry..."
+            sleep 30
             exit 1
         fi
     else
