@@ -1,13 +1,17 @@
 FROM node:18-alpine
 
+# Install serve globally for production mode
+RUN npm install -g serve
+
 # Set working directory
 WORKDIR /app
 
 # Copy package files first for better caching
 COPY package*.json ./
 
-# Install dependencies with retry mechanism
-RUN npm ci --legacy-peer-deps --production=false || npm install --legacy-peer-deps
+# Copy entrypoint script
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Copy application code
 COPY . .
@@ -15,5 +19,5 @@ COPY . .
 # Expose port
 EXPOSE 5173
 
-# Start development server
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Use entrypoint script
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
