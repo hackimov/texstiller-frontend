@@ -33,22 +33,30 @@ install_dependencies() {
         if [ "$NODE_ENV" = "production" ]; then
             echo "Installing production + dev dependencies for build..."
             # Для продакшена нужны dev зависимости для сборки
-            npm install --legacy-peer-deps
+            # Устанавливаем все зависимости, игнорируя NODE_ENV
+            npm install --legacy-peer-deps --include=dev --production=false
         else
             echo "Installing all dependencies..."
             npm install --legacy-peer-deps
         fi
         
         # Проверяем успешность установки
+        echo "📋 Post-install diagnostics:"
+        echo "Total packages in node_modules: $(ls node_modules | wc -l)"
+        echo "Binaries in .bin: $(ls node_modules/.bin 2>/dev/null | wc -l)"
+        
         if [ -f "node_modules/.bin/vite" ]; then
             touch node_modules/.installed
             echo "✅ Dependencies installed successfully"
+            echo "✅ Vite found at: $(ls -la node_modules/.bin/vite)"
         else
             echo "❌ Dependencies installation failed - vite not found"
             echo "📋 Checking node_modules structure:"
             ls -la node_modules/.bin/ 2>/dev/null || echo "No .bin directory found"
-            echo "📋 Checking package.json scripts:"
-            cat package.json | grep -A 5 '"scripts"' || echo "No scripts found"
+            echo "📋 Looking for vite in node_modules:"
+            find node_modules -name "*vite*" -type d 2>/dev/null | head -5
+            echo "📋 Checking package.json dependencies:"
+            cat package.json | grep -A 10 '"devDependencies"' || echo "No devDependencies found"
             echo "⏳ Waiting 30 seconds before retry..."
             sleep 30
             exit 1
