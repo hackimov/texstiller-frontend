@@ -17,11 +17,34 @@ echo "Mode: ${FRONTEND_MODE:-auto}"
 
 # Функция для установки зависимостей
 install_dependencies() {
-    if [ ! -d "node_modules" ] || [ ! -f "node_modules/.installed" ]; then
+    # Проверяем наличие ключевых зависимостей
+    if [ ! -d "node_modules" ] || [ ! -f "node_modules/.bin/vite" ]; then
         echo "📦 Installing dependencies..."
-        npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-        touch node_modules/.installed
-        echo "✅ Dependencies installed"
+        
+        # Удаляем старые node_modules если есть
+        if [ -d "node_modules" ]; then
+            echo "🗑️ Removing old node_modules..."
+            rm -rf node_modules
+        fi
+        
+        # Определяем режим установки
+        if [ "$NODE_ENV" = "production" ]; then
+            echo "Installing production + dev dependencies for build..."
+            # Для продакшена нужны dev зависимости для сборки
+            npm install --legacy-peer-deps
+        else
+            echo "Installing all dependencies..."
+            npm install --legacy-peer-deps
+        fi
+        
+        # Проверяем успешность установки
+        if [ -f "node_modules/.bin/vite" ]; then
+            touch node_modules/.installed
+            echo "✅ Dependencies installed successfully"
+        else
+            echo "❌ Dependencies installation failed - vite not found"
+            exit 1
+        fi
     else
         echo "✅ Dependencies already installed"
     fi
@@ -30,8 +53,38 @@ install_dependencies() {
 # Функция для сборки проекта
 build_project() {
     echo "🔨 Building project..."
-    npm run build
-    echo "✅ Build completed"
+    
+    # Проверяем наличие package.json и scripts
+    if [ ! -f "package.json" ]; then
+        echo "❌ package.json not found"
+        exit 1
+    fi
+    
+    # Отладочная информация
+    echo "📋 Checking build environment..."
+    echo "Working directory: $(pwd)"
+    echo "Node version: $(node --version)"
+    echo "NPM version: $(npm --version)"
+    echo "Package.json exists: $(test -f package.json && echo 'yes' || echo 'no')"
+    echo "Node modules exists: $(test -d node_modules && echo 'yes' || echo 'no')"
+    
+    # Проверяем наличие vite
+    if [ -f "node_modules/.bin/vite" ]; then
+        echo "✅ Vite found at node_modules/.bin/vite"
+    else
+        echo "❌ Vite not found in node_modules/.bin/"
+        echo "📋 Listing node_modules/.bin/:"
+        ls -la node_modules/.bin/ | head -10
+    fi
+    
+    # Используем npm run build (который использует локально установленный vite)
+    echo "🚀 Running npm run build..."
+    if npm run build; then
+        echo "✅ Build completed"
+    else
+        echo "❌ Build failed"
+        exit 1
+    fi
 }
 
 # Функция для запуска статического сервера
@@ -51,7 +104,14 @@ serve_static() {
 # Функция для запуска dev сервера
 start_dev() {
     echo "🔥 Starting development server..."
-    npm run dev -- --host 0.0.0.0
+    
+    # Проверяем наличие dev скрипта
+    if npm run dev -- --host 0.0.0.0; then
+        echo "✅ Dev server started"
+    else
+        echo "❌ Failed to start dev server"
+        exit 1
+    fi
 }
 
 # Устанавливаем зависимости
