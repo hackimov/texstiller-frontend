@@ -121,11 +121,22 @@ const fetchCategories = async () => {
   try {
     const response = await categoriesApi.getTree()
     categories.value = response.data.data
+    
+    // Автоматически разворачиваем все категории с подпунктами
+    expandCategoriesWithChildren()
   } catch (error) {
     console.error('Ошибка загрузки категорий:', error)
   } finally {
     loading.value = false
   }
+}
+
+const expandCategoriesWithChildren = () => {
+  const categoriesToExpand = categories.value
+    .filter(category => category.children && category.children.length > 0)
+    .map(category => category.id)
+  
+  expandedCategories.value = [...categoriesToExpand]
 }
 
 const getCategoryIcon = (category) => {
